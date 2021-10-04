@@ -1,0 +1,1187 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Head Soccer</title>
+</head>
+    //sound library
+    <script src="howler/howler.js-master/dist/howler.js"></script>
+    //PIXI graphics library
+    <script src="pixi/pixi.min.js"></script>
+<body>
+  <script type="text/javascript">
+    let type = "WebGL"
+    if(!PIXI.utils.isWebGLSupported()){
+      type = "canvas"
+    }
+
+PIXI.utils.sayHello(type)
+      
+
+let Application = PIXI.Application,
+    loader = PIXI.loader,
+    resources = PIXI.loader.resources,
+    Sprite = PIXI.Sprite;
+    TextStyle = PIXI.TextStyle;
+    Text = PIXI.Text;
+    Container = PIXI.Container;
+    Graphics = PIXI.Graphics;
+
+
+let app = new Application({ 
+    width: 1043, 
+    height: 643,                       
+    antialias: true, 
+    transparent: false, 
+    resolution: 1
+  }
+);
+      
+
+let left = keyboard("ArrowLeft"),
+    up = keyboard("ArrowUp"),
+    right = keyboard("ArrowRight"),
+    down = keyboard("ArrowDown"), 
+    space = keyboard(" ");
+
+
+document.body.appendChild(app.view);
+
+//adds sprite images
+loader
+    .add("images/playerHead.png")
+    .add("images/autoHead.png")
+    .add("images/startButton.png")
+    .add("images/instructionsButton.png")
+    .add("images/backButton.png")
+    .add("images/soccerField.png")
+    .add("images/ball.png")
+    .add("images/ground.png")
+    .add("images/goalTop.png")
+    .add("images/goalBar.png")
+    .add("images/playerCleat.png")
+    .add("images/autoCleat.png")
+    .add("images/instructions.png")
+    .load(setup);
+ 
+//shortcuts for objects
+let startButton;
+let instructionsButton;
+let backButton;
+let soccerField;
+let ball;
+let goalTop
+let goalTop2;
+let goal;
+let goal2;
+let scoreMessage;
+let scoreMessage2;
+let autoWin;
+let playerWin;
+let p1;
+let p2;
+let state;
+let p1Body;
+let cheering;
+let endWhistle;
+let instructionsPage;
+      
+//variables
+var time;
+var stopClock = 30;
+var startTime = new Date();
+var seconds;
+var p1CleatPos = 0.0;
+var p2CleatPos = 0.0;
+var worldx = 0;
+var worldy = 1;
+var scale = 10.43;
+var p1Score = 0;
+var p2Score = 0;
+var offsetx = 0;
+var offsety = 0;
+var viewMax = 565;
+var velocity = 30;
+var direction = 1;
+var angle = -90;
+var hit = false;
+var score1 = false;
+var score2 = false;
+var wallHit = false;
+var upPressed = false;
+var upPressed2 = false;
+var kickPressed = false;
+var kickPressed2 = false;
+var winMessage = "You Won";
+var loseMessage = "You Lost";
+      
+//setup function
+function setup() 
+{
+
+    //Containers
+    startContainer = new Container();
+    instructionsContainer = new Container();
+    playContainer = new Container();
+    endContainer1 = new Container();
+    endContainer2 = new Container();
+
+    //creates text style
+    let style = new TextStyle
+    (
+        {
+        fontFamily: "Futura",
+        fontSize: 65,
+        fill: "white"
+        }
+    );
+    
+    let style2 = new TextStyle
+    (
+        {
+        fontFamily: "Futura",
+        fontSize: 100,
+        fill: "green"
+        }
+    );
+    
+    let timerStyle = new TextStyle
+    (
+        {
+        fontFamily: "Futura",
+        fontSize: 35,
+        fill: "green"
+        }
+    );
+    
+    //Create sprites for start
+    startSoccerField = new Sprite(resources["images/soccerField.png"].texture);
+    startContainer.addChild(startSoccerField);
+    startButton = new Sprite(resources["images/startButton.png"].texture);
+    startContainer.addChild(startButton);
+    instructionsButton = new Sprite(resources["images/instructionsButton.png"].texture);
+    startContainer.addChild(instructionsButton);
+    
+    //creates sprites for instructions
+    backgroundField = new Sprite(resources["images/soccerField.png"].texture);
+    instructionsContainer.addChild(backgroundField);
+    instructionsPage = new Sprite(resources["images/instructions.png"].texture);
+    instructionsContainer.addChild(instructionsPage);
+    backButton = new Sprite(resources["images/backButton.png"].texture);
+    instructionsContainer.addChild(backButton);
+    
+    //Create the sprites for play
+    soccerField = new Sprite(resources["images/soccerField.png"].texture);
+    playContainer.addChild(soccerField);
+    ball = new Sprite(resources["images/ball.png"].texture);
+    playContainer.addChild(ball);
+    goalTop = new Sprite(resources["images/goalTop.png"].texture);
+    playContainer.addChild(goalTop);
+    goalTop2 = new Sprite(resources["images/goalTop.png"].texture);
+    playContainer.addChild(goalTop2);
+    p1 = new Sprite(resources["images/playerHead.png"].texture);
+    playContainer.addChild(p1);
+    p1Cleat = new Sprite(resources["images/playerCleat.png"].texture);
+    playContainer.addChild(p1Cleat);
+    p2 = new Sprite(resources["images/autoHead.png"].texture);
+    playContainer.addChild(p2);
+    p2Cleat = new Sprite(resources["images/autoCleat.png"].texture);
+    playContainer.addChild(p2Cleat);
+    goal = new Sprite(resources["images/goalBar.png"].texture);
+    playContainer.addChild(goal);
+    goal2 = new Sprite(resources["images/goalBar.png"].texture);
+    playContainer.addChild(goal2);
+
+    //Creates sprites for end 1
+    endBackground1 = new Sprite(resources["images/soccerField.png"].texture);
+    endContainer1.addChild(endBackground1);
+    backHome = new Sprite(resources["images/backButton.png"].texture);
+    endContainer1.addChild(backHome);
+    playerWin = new Text(winMessage, style2);
+    endContainer1.addChild(playerWin);
+    
+    //Creates sprites for end 2
+    endBackground2 = new Sprite(resources["images/soccerField.png"].texture);
+    endContainer2.addChild(endBackground2);
+    backHome2 = new Sprite(resources["images/backButton.png"].texture);
+    endContainer2.addChild(backHome2);
+    autoWin = new Text(loseMessage, style2);
+    endContainer2.addChild(autoWin);
+
+    
+    //Text Messages
+    scoreMessage = new Text(p1Score, style);
+    playContainer.addChild(scoreMessage);
+    scoreMessage2 = new Text(p2Score, style);
+    playContainer.addChild(scoreMessage2);
+    timer = new Text(stopClock, timerStyle);
+    playContainer.addChild(timer);
+
+    //Adding Sounds
+    cheering = new Howl({
+    src: ['sounds/cheer.mp3'],
+    autoplay: false,
+    loop: false,
+    volume: 0.5,
+    onend: function() {
+    }
+    });
+    
+    endWhistle = new Howl({
+    src: ['sounds/endWhistle.mp3'],
+    autoplay: false,
+    loop: false,
+    volume: 0.7,
+    onend: function() {
+    }
+    });
+    
+    kick = new Howl({
+    src: ['sounds/kick.mp3'],
+    autoplay: false,
+    loop: false,
+    volume: 0.7,
+    onend: function() {
+    }
+    });
+    
+    //Positioning Sprites
+    startButton.x = 275;
+    startButton.y = 100;
+    
+    instructionsButton.x = 275;
+    instructionsButton.y = 350;
+    instructionsButton.width = 471;
+    
+    backButton.x = 853;
+    backButton.y = 553;
+    instructionsPage.x = 142;
+    instructionsPage.y = 39;
+    
+    backHome.x = 800;
+    backHome.y = 500;
+    backHome2.x = 800;
+    backHome2.y = 500;
+    
+    ball.x = 500;
+    ball.y = 300;
+    ball.vx = 0;
+    ball.vy = 0;
+    ball.scale.set(0.05, 0.05);  
+
+    goalTop.width = 105;
+    goalTop.x = 6;
+    goalTop.y = 430;
+
+    goalTop2.width = 105;
+    goalTop2.x = 931;
+    goalTop2.y = 430;
+
+    goal.height = 150;
+    goal.x = 114;
+    goal.y = 433;
+
+    goal2.height = 150;
+    goal2.x = 928;
+    goal2.y = 433;
+
+    scoreMessage.x = 970;
+    scoreMessage.y = 20;
+    scoreMessage2.x = 30;
+    scoreMessage2.y = 20;
+    timer.x = 500;
+    timer.y = 50;
+    
+    playerWin.x = 350;
+    playerWin.y = 350;
+    autoWin.x = 350;
+    autoWin.y = 350;
+
+    p1CleatPos = 0.0;
+    p1.x = 850;
+    p1.y = 510;
+    p1.scale.set(0.22, 0.22)
+    p1.vx = 0;
+    p1.vy = 0;
+    p1Cleat.x = 875;
+    p1Cleat.y = 560;
+    p1Cleat.scale.set(0.12, 0.12);
+    p1Cleat.vx = 0;
+    p1Cleat.vy= 0;
+    p1Cleat.rotation = 0;
+    
+    p2.x = 150;
+    p2.y = 510;
+    p2.scale.set(0.22, 0.22)
+    p2.vx = 0;
+    p2.vy = 0;
+    p2Cleat.anchor.set(1,0);
+    p2Cleat.x = 190;
+    p2Cleat.y = 560;
+    p2Cleat.scale.set(0.12, 0.12);
+    p2Cleat.vx = 0;
+    p2Cleat.vy= 0;
+    p2Cleat.rotation = 0;
+
+    //Creates buttons to switch screens
+    startButton.interactive = true;
+    startButton.on('mousedown', function() {startTime = Date.now(); state = play });
+    instructionsButton.interactive = true;
+    instructionsButton.on('mousedown', function() {state = instructions; });
+    backButton.interactive = true;
+    backButton.on('mousedown', function() {state = start });
+    backHome.interactive = true;
+    backHome.on('mousedown', function() {state = start });
+    backHome2.interactive = true;
+    backHome2.on('mousedown', function() {state = start });
+    
+    //Adds play container to stage
+    app.stage.addChild(startContainer);
+    app.stage.addChild(instructionsContainer);    
+    app.stage.addChild(playContainer);
+    app.stage.addChild(endContainer1);
+    app.stage.addChild(endContainer2);
+    
+
+    //sets game state
+    state = start;
+
+    restart();
+    
+    //sets initial offset
+    offsetx = ball.x/scale; 
+    offsety = (viewMax - ball.y)/scale; 
+
+    //calls game loop
+    app.ticker.add(delta => gameLoop(delta));
+}
+
+//Game Loop which constantly gets called     
+function gameLoop(delta)
+{
+    state(delta);
+}
+
+//Sets visible containers for the start screen
+function start(delta)
+{
+    startContainer.visible = true;
+    instructionsContainer.visible = false;
+    playContainer.visible = false;
+    endContainer1.visible = false;
+    endContainer2.visible = false;
+}
+      
+//Sets visible containers for the instructions screen
+function instructions(delta)
+{
+    startContainer.visible = false;
+    instructionsContainer.visible = true;
+    playContainer.visible = false;
+    endContainer1.visible = false;
+    endContainer2.visible = false;
+}
+      
+//Play game state     
+function play(delta) 
+{
+    //sets visible containers
+    startContainer.visible = false;
+    instructionsContainer.visible = false;
+    playContainer.visible = true;
+    endContainer1.visible = false;
+    endContainer2.visible = false;
+    
+    //calls keyboard function
+    keyboardMotion();
+    
+    //moves ball
+    bounce();
+    
+    //moves computer player
+    autoPlayer();
+
+    //kick function
+    headBall();
+    kickBall();
+    
+    //keeps score
+    scoreKeeping(); 
+    
+    gameClock();
+    
+    //when time runs out
+    if(stopClock <= 0)
+    {
+        winner();
+    }
+}
+
+function endScreen1(delta)
+{
+    //sets visible containers
+    startContainer.visible = false;
+    instructionsContainer.visible = false;
+    playContainer.visible = false;
+    endContainer1.visible = true;
+    endContainer2.visible = false;
+    
+    //resets clock and score for new game
+    stopClock = 30;
+    p1Score = 0;
+    p2Score = 0;
+    
+    //updates text displays
+    timer.text = stopClock;
+    scoreMessage.text = p1Score;
+    scoreMessage2.text = p2Score;
+    
+    //resets sprites on field
+    restart();
+}
+
+function endScreen2(delta)
+{
+    startContainer.visible = false;
+    instructionsContainer.visible = false;
+    playContainer.visible = false;
+    endContainer1.visible = false;
+    endContainer2.visible = true;
+    
+    stopClock = 30;
+    p1Score = 0;
+    p2Score = 0;
+    
+    timer.text = stopClock;
+    scoreMessage.text = p1Score;
+    scoreMessage2.text = p2Score;
+
+    restart();
+}
+
+//This is a countdown timer which displays a 30 second countdown
+function gameClock()
+{
+    //starts a second counter
+    seconds = Date.now() - startTime;
+    //rounds the difference into seconds
+    seconds = Math.round(seconds/1000);
+    //subtracts from 30 to create a countdown timer
+    stopClock = 30 - seconds;
+    //updates text
+    timer.text = stopClock;
+}
+    
+//Assings different keyboard functions to player motion
+function keyboardMotion()
+{
+    //on left press
+    left.press = () => 
+    {
+        //change speed of x direction
+        p1.vx = -4;      
+        p1.vy = 0;
+        p1Cleat.vx = -4;      
+        p1Cleat.vy = 0;
+    }
+  
+    //when left released
+    left.release = () => 
+    {
+        if (!right.isDown) 
+        {
+            p1.vx = 0;
+            p1Cleat.vx = 0; 
+        }
+    }
+
+    //up release not needed due to gravity
+    up.press = () => 
+    {   
+        p1.vy = -4;
+        p1.vx = 0;
+        p1Cleat.vx = 0;      
+        p1Cleat.vy = -4;
+        //variable to set up limit
+        
+        if(p1.y >= 510)
+        {
+            upPressed = true;
+        }  
+    }
+    
+    right.press = () => 
+    {
+        p1.vx = 4;
+        p1.vy = 0;
+        p1Cleat.vx = 4;      
+        p1Cleat.vy = 0;
+    }
+  
+    right.release = () => 
+    {
+        if (!left.isDown) 
+        {
+            p1.vx = 0;
+            p1Cleat.vx = 0; 
+        }
+    }
+    
+    space.press = () => 
+    {   
+        kickPressed = true;
+    }
+    
+    //sets new x value depending on button pressed
+    p1.x += p1.vx;
+    p1Cleat.x += p1Cleat.vx;
+    
+    //limit for jump height
+    if(p1.y > 460 && upPressed == true)
+        {
+            p1.y += p1.vy;
+            p1Cleat.y += p1Cleat.vy;
+        }
+    
+    else
+    {
+        upPressed = false;
+        if (p1.y < 510)
+        {
+            p1.y += 3;
+            p1Cleat.y += 3;
+        }
+    }
+    
+    if(p1CleatPos < 2.5 && kickPressed == true)        
+    {
+        p1CleatPos += 0.2;
+        p1Cleat.rotation = p1CleatPos;
+    }
+    
+    else
+    {
+        kickPressed = false;
+        if (p1CleatPos > 0)
+            {
+                p1CleatPos -= 0.1;
+                p1Cleat.rotation = p1CleatPos;
+            }
+    }
+}
+
+//Displays appropriate end state depending on which score is higher
+function winner()
+{
+    //checks if p1 is winning
+    if(p1Score > p2Score)
+    {
+        //changes to end screen 1
+        state = endScreen1;
+        //plays end whistle sound
+        endWhistle.play();
+    }
+    
+    else if (p1Score < p2Score)
+    {
+        state = endScreen2;    
+        endWhistle.play();
+    }
+    
+    //neither player is winning so continues until next goal
+    else
+    {
+        state = play;
+    }
+}
+      
+//checks for goals
+function scoreKeeping()
+{
+    //calls hit test method between ball and goal
+    //boolean prevents multiple goal from adding
+    if(worldx >= 89.6 && worldy <= 11.9  && score1 == false)
+    {
+        p2Score = p2Score + 1;
+        scoreMessage2.text = p2Score;
+        score2 = true;
+        cheering.play();
+        
+        restart();
+        
+    }
+    
+    //same for other goal
+    else if(worldx <= 10.5 && worldy <= 11.9 && score2 == false)
+    {
+        //adds to score display
+        p1Score = p1Score + 1;
+        scoreMessage.text = p1Score;
+        score1 = true;
+        cheering.play();
+        
+        //calls restart method
+        restart();
+    } 
+}
+
+//resets the field, sprite positions for ball drop after goal  
+function restart()
+{
+    //resets time
+    time = 0;
+    
+    //positions sprites
+    ball.x = 500; 
+    ball.y = 300;
+    
+    p1.x = 850;
+    p1.y = 510;
+    p1Cleat.x = 875;
+    p1Cleat.y = 560;
+    //p1Body.x = 895;
+    //p1Body.y = 550;
+    
+    p2.x = 150;
+    p2Cleat.x = 190;
+    
+    //generates a random value
+    value = Math.ceil(Math. random()* 3);
+    
+    //Depending on outcome, ball moves to certain side adding variability
+    if(value == 1)
+    {
+        //sets the trajectory of the ball downwards
+        direction = 1;
+        velocity = 30;
+        angle = -90;
+        offsetx = ball.x/scale; 
+        offsety = (viewMax - ball.y)/scale;
+    }
+    
+    else if(value == 2)
+    {
+        //sets ball right
+        direction = 1;
+        velocity = 30;
+        angle = -80;
+        offsetx = ball.x/scale; 
+        offsety = (viewMax - ball.y)/scale;
+    }
+    
+    else if(value == 3)
+    {
+        //sets ball left
+        direction = -1;
+        velocity = 30;
+        angle = -80;
+        offsetx = ball.x/scale; 
+        offsety = (viewMax - ball.y)/scale;
+    }
+    //calls bounce function to move ball
+    bounce();
+    
+    //sets score to false so score can be added again
+    score1 = false;
+    score2 = false;
+}
+
+//moves the ball whenever in collision with player
+function headBall()
+{
+    //uses hit test between ball and player
+    if((hitTest(p1, ball) == true) || (hitTest(p2, ball) == true))
+    {
+        //sets the new ball properties based on position of contact
+        setHeadValues();
+        bounce();
+        //sound effect
+        kick.play();
+    }
+} 
+
+//ABSTRACTION
+//Sets the ball properties based on where the collision occured
+function setHeadValues()
+{
+    var r1;
+    
+    //identifies which player headed the ball
+    if(hitTest(p1, ball) == true)
+    {
+        r1 = p1;
+    }
+    
+    if(hitTest(p2, ball) == true)
+    {
+        r1 = p2;
+    }
+    
+    //finds the x collision position and y collision position 
+    //the absolute value of Ball's pos - Player's pos
+    xHitPos = Math.abs(ball.x - r1.x);
+    yHitPos = Math.abs(ball.y - r1.y);
+    
+    //resets time and updates offsets
+    time = 0;
+    offsetx = worldx;
+    offsety = worldy;
+    
+    //decides the direction to move the ball depending on where the ball is hit
+    if(xHitPos > (r1.width / 2))
+    {
+        direction = 1;
+    }
+    else
+    {
+        direction = -1;
+    }
+    
+    //depending on height of contact point change the angle and the speed
+    if(yHitPos > (r1.height / 2.5) && yHitPos < (r1.height / 1.5))
+    {
+        angle = 30;
+        velocity = velocity + 2;
+    }
+    else if (yHitPos > (r1.height / 4))
+    {
+        angle = 60;
+        velocity = velocity;
+    }
+    else
+    {
+        angle = 80;
+        velocity = velocity - 5;
+    }
+    
+}
+
+//checks for kick and moves ball accordingly
+function kickBall()
+{
+    //checks for collision between cleat and ball   
+    if((hitTest(p1Cleat, ball) == true) || (hitTest(p2Cleat, ball) == true))
+    {
+        //sets ball properties for the kick
+        setKickValues();
+        bounce();
+        //sounds effect
+        kick.play();
+    }
+       
+}
+
+//sets the ball properties depending on the kick
+function setKickValues()
+{
+    var isKicked = false;
+    //resets time and updates offset
+    time = 0;
+    offsetx = worldx;
+    offsety = worldy;
+    
+    //checks if player 1 or 2 kicked the ball to determine direction
+    if(hitTest(p1Cleat, ball) == true)
+    {
+        direction = -1;
+        isKicked = true;
+    }
+    
+    if(hitTest(p2Cleat, ball) == true)
+    {
+        direction = 1;
+        isKicked = true;
+    }
+    
+    //sets the speed and angle of the ball depending on where it was kicked
+    if(isKicked == true)
+    {
+        if(ball.y > 550)
+        {
+            angle = 10;
+            velocity = velocity + 10;
+        }
+        else if(velocity < 10)
+        {
+            angle = 45;
+            velocity = velocity + 20;
+        }
+        else if(ball.y > 530)
+        {
+            angle = 45;
+            velocity = velocity + 20;
+        }
+        else
+        {
+            angle = 70;
+            velocity = velocity + 5;
+        }
+    }
+}
+      
+//Moves the left player autonomously to follow the ball with jump and kick features
+function autoPlayer()
+{
+    //defines local variables
+    var theta = angle * Math.PI / 180;
+    var horizontalV = velocity * Math.sin(theta);
+    var verticalV = velocity * Math.cos(theta);
+    p2x = p2.x/scale;
+    var distance;
+    var time;
+    var finalX;
+    
+    //calculates the time and distance of the ball's end pos
+    time = (2 * horizontalV) / 9.8;
+    distance = verticalV * time;
+    
+
+    //calculates whether to move player forward or backwards
+    if(direction == 1)
+    {
+        finalX = offsetx + distance
+    }
+
+    else if(direction == -1)
+    {
+        finalX = offsetx - distance
+    }
+        
+    //if reachable with a jump, jump
+    if(finalX < 60)
+    {    
+        if(finalX > p2x)
+        {
+            p2.x += 4;
+            p2Cleat.x += 4;
+        }
+
+        else if(finalX < p2x)
+        {  
+            p2.x -= 4;
+            p2Cleat.x -= 4;
+        }
+    }
+    
+    //if ball is low enough to kick, kick the ball
+    if(p2x > finalX - 3 && p2x < finalX + 3 && ball.y > 500)
+    {
+        kickPressed2 = true;
+        
+        if(p2CleatPos > -2.5 && kickPressed2 == true)        
+        {
+            p2CleatPos -= 0.2;
+            p2Cleat.rotation = p2CleatPos;
+        }
+
+        else
+        {
+            kickPressed2 = false;
+            if (p2CleatPos < 0)
+            {
+                p2CleatPos += 0.1;
+                p2Cleat.rotation = p2CleatPos;
+            }
+        }
+    }
+    
+    else
+    {
+        //returns foot to starting position
+        kickPressed2 = false;
+        if (p2CleatPos < 0)
+        {
+            p2CleatPos += 0.1;
+            p2Cleat.rotation = p2CleatPos;
+        }
+    }
+    
+    if(p2x > finalX - 3 && p2x < finalX + 3 && ball.y >= 400)
+    {
+        if(p2.y >= 510)
+        {
+            upPressed2 = true;
+        }  
+        
+        if(p2.y > 460 && upPressed2 == true)
+            {
+                p2.y -= 4;
+                p2Cleat.y -= 4;
+            }
+        
+        else
+        {
+            upPressed2 = false;
+            if (p2.y < 510)
+            {
+                p2.y += 3;
+                p2Cleat.y += 3;
+            }
+        }
+    }
+    
+    else
+    {
+        upPressed2 = false;
+        if (p2.y < 510)
+        {
+            p2.y += 3;
+            p2Cleat.y += 3;
+        }
+    } 
+}
+ 
+//MAIN ALGORITHM
+//checks for collisions with walls or ground to change the ball's properties for the bounce 
+function bounce()
+{
+    //if the ball does not hit any barriers, continue moving
+    if (worldy >= 0 && hit == false)
+    {
+        //continue moving with current parameters
+        ballMotion(velocity, angle, offsetx, offsety, direction);
+    }
+    //if a collision with ground or barrier
+    else
+    {
+        time = 0;
+        offsetx = worldx;
+        
+        //if hit a wall
+        if(hit == false)
+        {
+            offsety = 0;
+            velocity = velocity * 0.8;
+            angle = Math.abs(angle)
+            ballMotion(velocity, angle, offsetx, offsety, direction); 
+        }
+        
+        //if hit the ground
+        else
+        {
+            offsety = worldy;
+            velocity = velocity * 0.9;
+            ballMotion(velocity, angle, offsetx, offsety, direction);
+            hit = false;
+        }
+    }   
+    
+    //checks if ball is past right barrier
+    if(worldx >= 99)
+    {
+        hit = true;
+        angle = angle -5;
+        direction = -direction;
+    }
+   
+    //Above goal
+    else if (worldx <= 11.5 && worldy <= 13 && worldy >= 11.9)
+    {
+        hit = true;
+        angle = Math.abs(angle);
+        direction = direction;
+    }
+    
+    //Above Goal
+    else if (worldx >= 88.7 && worldy <= 13 && worldy >= 11.9)
+    {
+        hit = true;
+        angle = Math.abs(angle);
+        direction = direction;
+    }
+    
+    //Chekcs if behind left barrier
+    else if(worldx <= 0.5 )
+    {
+        hit = true;
+        angle = angle -5;
+        direction = -direction;
+    }
+    
+    //If above ceiling
+    else if (worldy >= 52.2)
+    {
+        angle = -angle;
+        hit = true;
+    }
+    
+    //checks if hit with angled barriers
+    else
+    {
+         barrierCheck(worldx, worldy);
+    }
+}
+  
+//SUB ALGORITHM
+//moves the ball in a parabola through conversion of world coordinates to viewport coordinates
+function ballMotion(velocity, theta, offsetx, offsety, direction) 
+{
+    //converts theta to radians
+    theta = theta * Math.PI / 180;
+
+    //increments time for every iteration called
+    time += 0.05;
+
+    //calculates the parabola motion in world coordinates
+    worldx = offsetx + direction * (velocity * time * Math.cos(theta)); 
+    worldy = offsety + velocity * time * Math.sin(theta) - 0.5 * 9.8 * Math.pow(time, 2);
+
+    //counter measure against repeated collision with wall
+    if(worldx < 0.1)
+    {
+        worldx = 0.1;    
+    }
+    
+    else if(worldx > 99.9)
+    {
+        worldx = 99.9;    
+    }
+    
+    //transforms world coordinates into viewport coordinates using formula
+    ball.x = (worldx * scale);
+    ball.y = viewMax - (worldy * scale); 
+
+}
+      
+//SUB ALGORITHM
+//checks for a collision beyond the angled barriers
+function barrierCheck(posX, posY)
+{
+    //checks if the ball is above the barrier's line
+    if(posY >= -4.75 * (posX -95) +32)
+    {
+        hit = true;
+        angle = angle - 20;
+        direction = -direction;
+    }
+    else if(posY >= -0.905 * (posX -74.3) + 52.3)
+    {
+        hit = true;
+        angle = angle - 30;
+        direction = -direction;
+    }
+    else if(posY >= 4.53 * (posX -0.48) +15.8)
+    {
+        hit = true;
+        angle = angle - 20;
+        direction = -direction;
+    }
+    else if(posY >= 0.91 * (posX - 4.3) + 33.1)
+    {
+        hit = true;
+        angle = angle - 30;
+        direction = -direction;
+    }
+    
+    //changes global hit to false to make a change within bounce()
+}
+
+//checks for a collision between two sprites
+function hitTest(r1, r2) 
+{
+
+    let hit, combinedHalfWidths, combinedHalfHeights, vx, vy;
+    hit = false;
+
+    //finds the center
+    r1.centerX = r1.x + r1.width / 2;
+    r1.centerY = r1.y + r1.height / 2;
+    r2.centerX = r2.x + r2.width / 2;
+    r2.centerY = r2.y + r2.height / 2;
+
+    //finds half widths
+    r1.halfWidth = r1.width / 2;
+    r1.halfHeight = r1.height / 2;
+    r2.halfWidth = r2.width / 2;
+    r2.halfHeight = r2.height / 2;
+
+    vx = r1.centerX - r2.centerX;
+    vy = r1.centerY - r2.centerY;
+
+    //finds combined half width of the two sprites
+    combinedHalfWidths = r1.halfWidth + r2.halfWidth;
+    combinedHalfHeights = r1.halfHeight + r2.halfHeight;
+
+    //checks if sprite half widths are touching one another
+    if (Math.abs(vx) < combinedHalfWidths) 
+    {
+        if (Math.abs(vy) < combinedHalfHeights) 
+        {
+            hit = true;
+        } 
+
+        else 
+        {
+            hit = false;
+        }
+    } 
+
+    else 
+    {
+        hit = false;
+    }
+    
+    return hit;
+};
+      
+//allows for keyboard values to be created
+function keyboard(value) 
+{
+    let key = {};
+    key.value = value;
+    key.isDown = false;
+    key.isUp = true;
+    key.press = undefined;
+    key.release = undefined;
+
+    //The downhandler
+    key.downHandler = event => 
+    {
+        if (event.key === key.value) 
+        {
+            if (key.isUp && key.press) key.press();
+            key.isDown = true;
+            key.isUp = false;
+            event.preventDefault();
+        }
+    }
+
+      //The upHandler
+    key.upHandler = event => 
+    {
+        if (event.key === key.value) 
+        {
+            if (key.isDown && key.release) key.release();
+            key.isDown = false;
+            key.isUp = true;
+            event.preventDefault();
+        }
+    }
+
+      //Attach event listeners
+    const downListener = key.downHandler.bind(key);
+    const upListener = key.upHandler.bind(key);
+
+    window.addEventListener
+    (
+        "keydown", downListener, false
+    )
+
+    window.addEventListener
+    (
+        "keyup", upListener, false
+    )
+
+      // Detach event listeners
+    key.unsubscribe = () => 
+    {
+        window.removeEventListener("keydown", downListener);
+        window.removeEventListener("keyup", upListener);
+    }
+
+    return key;
+}
+      
+  </script>
+</body>
+</html>
